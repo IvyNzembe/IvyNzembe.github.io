@@ -776,35 +776,109 @@ html {
 </form>
     
     
-    <form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_top">
-<input type="hidden" name="cmd" value="_s-xclick">
-<input type="hidden" name="hosted_button_id" value="P95FJJMXPC9YA">
-<table>
-<tr><td><input type="hidden" name="on0" value="Cakes">Cakes</td></tr><tr><td><select name="os0">
-	<option value="4" cake">4" cake $40.00 USD</option>
-	<option value="6"cake">6"cake $55.00 USD</option>
-	<option value="8" cake">8" cake $75.00 USD</option>
-	<option value="10"cake">10"cake $95.00 USD</option>
-	<option value="12"cake">12"cake $105.00 USD</option>
-	<option value="2tier cake 4"+6" cake">2tier cake 4"+6" cake $115.00 USD</option>
-	<option value="2 tier cake 6"+8" cake">2 tier cake 6"+8" cake $135.00 USD</option>
-	<option value="3tier cake 4"+6"+8"">3tier cake 4"+6"+8" $150.00 USD</option>
-</select> </td></tr>
-<tr><td><input type="hidden" name="on1" value="Goodies  $20">Goodies  $20</td></tr><tr><td><select name="os1">
-	<option value="Muffins 10">Muffins 10 </option>
-	<option value="Cupcakes 10">Cupcakes 10 </option>
-	<option value="Donuts 12">Donuts 12 </option>
-	<option value="Cookies pack">Cookies pack </option>
-	<option value="Ruskies   1kg">Ruskies   1kg </option>
-	<option value="Option 6">Option 6 </option>
-</select> </td></tr>
-</table>
-<input type="hidden" name="currency_code" value="USD">
-<input type="image" src="https://www.paypalobjects.com/en_US/i/btn/btn_buynowCC_LG.gif" border="0" name="submit" alt="PayPal - The safer, easier way to pay online!">
-<img alt="" border="0" src="https://www.paypalobjects.com/en_US/i/scr/pixel.gif" width="1" height="1">
-</form>
+    <div id="smart-button-container">
+      <div style="text-align: center;">
+        <div style="margin-bottom: 1.25rem;">
+          <p>cakes</p>
+          <select id="item-options"><option value="6"" price="40">6" - 40 USD</option><option value="8"" price="54">8" - 54 USD</option><option value="10"" price="70">10" - 70 USD</option><option value="12"" price="90">12" - 90 USD</option><option value="14"" price="110">14" - 110 USD</option><option value="2tier" price="110">2tier - 110 USD</option><option value="2tier 8" 10"" price="130">2tier 8" 10" - 130 USD</option><option value="3tier" price="180">3tier - 180 USD</option><option value="4tier" price="250">4tier - 250 USD</option><option value="5tier" price="370">5tier - 370 USD</option></select>
+          <select style="visibility: hidden" id="quantitySelect"></select>
+        </div>
+      <div id="paypal-button-container"></div>
+      </div>
+    </div>
+    <script src="https://www.paypal.com/sdk/js?client-id=AT7vpIp_fz6cFBSMC-0HwTvy4bxAUbggnwpzN3AlwRy84m8j3u7rscdZflr_FhiQHFg5aeA8oPA21cDZ&enable-funding=venmo&currency=USD" data-sdk-integration-source="button-factory"></script>
+    <script>
+      function initPayPalButton() {
+        var shipping = 0;
+        var itemOptions = document.querySelector("#smart-button-container #item-options");
+    var quantity = parseInt();
+    var quantitySelect = document.querySelector("#smart-button-container #quantitySelect");
+    if (!isNaN(quantity)) {
+      quantitySelect.style.visibility = "visible";
+    }
+    var orderDescription = 'cakes';
+    if(orderDescription === '') {
+      orderDescription = 'Item';
+    }
+    paypal.Buttons({
+      style: {
+        shape: 'rect',
+        color: 'gold',
+        layout: 'vertical',
+        label: 'paypal',
+        
+      },
+      createOrder: function(data, actions) {
+        var selectedItemDescription = itemOptions.options[itemOptions.selectedIndex].value;
+        var selectedItemPrice = parseFloat(itemOptions.options[itemOptions.selectedIndex].getAttribute("price"));
+        var tax = (0 === 0 || false) ? 0 : (selectedItemPrice * (parseFloat(0)/100));
+        if(quantitySelect.options.length > 0) {
+          quantity = parseInt(quantitySelect.options[quantitySelect.selectedIndex].value);
+        } else {
+          quantity = 1;
+        }
 
+        tax *= quantity;
+        tax = Math.round(tax * 100) / 100;
+        var priceTotal = quantity * selectedItemPrice + parseFloat(shipping) + tax;
+        priceTotal = Math.round(priceTotal * 100) / 100;
+        var itemTotalValue = Math.round((selectedItemPrice * quantity) * 100) / 100;
 
+        return actions.order.create({
+          purchase_units: [{
+            description: orderDescription,
+            amount: {
+              currency_code: 'USD',
+              value: priceTotal,
+              breakdown: {
+                item_total: {
+                  currency_code: 'USD',
+                  value: itemTotalValue,
+                },
+                shipping: {
+                  currency_code: 'USD',
+                  value: shipping,
+                },
+                tax_total: {
+                  currency_code: 'USD',
+                  value: tax,
+                }
+              }
+            },
+            items: [{
+              name: selectedItemDescription,
+              unit_amount: {
+                currency_code: 'USD',
+                value: selectedItemPrice,
+              },
+              quantity: quantity
+            }]
+          }]
+        });
+      },
+      onApprove: function(data, actions) {
+        return actions.order.capture().then(function(orderData) {
+          
+          // Full available details
+          console.log('Capture result', orderData, JSON.stringify(orderData, null, 2));
+
+          // Show a success message within this page, e.g.
+          const element = document.getElementById('paypal-button-container');
+          element.innerHTML = '';
+          element.innerHTML = '<h3>Thank you for your payment!</h3>';
+
+          // Or go to another URL:  actions.redirect('thank_you.html');
+
+        });
+      },
+      onError: function(err) {
+        console.log(err);
+      },
+    }).render('#paypal-button-container');
+  }
+  initPayPalButton();
+    </script>
+  
 
 
 
